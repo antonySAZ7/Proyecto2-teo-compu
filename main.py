@@ -7,19 +7,24 @@ import re
 import sys
 from pathlib import Path
 
-from cyk import CYKParser, Grammar, GrammarError, to_cnf
+from cyk import CYKParser, CYKResult, Grammar, GrammarError, to_cnf
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_GRAMMAR = PROJECT_ROOT / "grammars" / "english.cfg"
-TOKEN_PATTERN = re.compile(r"[^\W_]+(?:'[^\W_]+)?|[^\w\s]", re.UNICODE)
+TOKEN_PATTERN = re.compile(r"[^\W_]+(?:'[^\W_]+)?|[^\s]", re.UNICODE)
 
 
 def tokenize(sentence: str, terminals: frozenset[str]) -> list[str]:
     """Separa palabras/simbolos y normaliza mayusculas sin ocultar errores."""
 
     raw_tokens = TOKEN_PATTERN.findall(sentence.strip())
-    while raw_tokens and raw_tokens[-1] in {".", "?", "!"}:
+    # Conservamos los símbolos desconocidos para que provoquen un rechazo.
+    while (
+        raw_tokens
+        and raw_tokens[-1] in {".", "?", "!"}
+        and raw_tokens[-1] not in terminals
+    ):
         raw_tokens.pop()
 
     canonical: dict[str, str] = {}
@@ -28,7 +33,7 @@ def tokenize(sentence: str, terminals: frozenset[str]) -> list[str]:
     return [canonical.get(token.casefold(), token.casefold()) for token in raw_tokens]
 
 
-def format_table(result) -> str:
+def format_table(result: CYKResult) -> str:
     if not result.tokens:
         return "(tabla vacia)"
     lines: list[str] = []
@@ -80,6 +85,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def run(argv: list[str] | None = None) -> int:
     args = build_argument_parser().parse_args(argv)
+    # Cargamos la gramática y la pasamos a CNF.
     try:
         source = Grammar.from_file(args.grammar, start=args.start)
         conversion = to_cnf(source)
@@ -88,8 +94,12 @@ def run(argv: list[str] | None = None) -> int:
         return 2
 
     if args.save_cnf:
-        args.save_cnf.parent.mkdir(parents=True, exist_ok=True)
-        args.save_cnf.write_text(conversion.grammar.to_text() + "\n", encoding="utf-8")
+        try:
+            args.save_cnf.parent.mkdir(parents=True, exist_ok=True)
+            args.save_cnf.write_text(conversion.grammar.to_text() + "\n", encoding="utf-8")
+        except OSError as exc:
+            print(f"No se pudo guardar la gramatica CNF: {exc}", file=sys.stderr)
+            return 2
         print(f"Gramatica CNF guardada en: {args.save_cnf}")
 
     if args.show_cnf:
@@ -109,6 +119,7 @@ def run(argv: list[str] | None = None) -> int:
             print("No se recibio ninguna frase.", file=sys.stderr)
             return 2
 
+    # Normalizamos la frase antes de llenar la tabla.
     tokens = tokenize(sentence, conversion.grammar.terminals)
     result = CYKParser(conversion.grammar).parse(tokens)
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from cyk import (
     CYKParser,
+    CYKResult,
     Grammar,
     eliminate_epsilon,
     eliminate_unit,
@@ -24,13 +25,15 @@ class EnglishGrammarTests(unittest.TestCase):
         cls.conversion = to_cnf(Grammar.from_file(ROOT / "grammars" / "english.cfg"))
         cls.parser = CYKParser(cls.conversion.grammar)
 
-    def parse(self, sentence: str):
+    def parse(self, sentence: str) -> CYKResult:
         tokens = tokenize(sentence, self.conversion.grammar.terminals)
         return self.parser.parse(tokens)
 
     def test_example_with_prepositional_phrase_is_accepted(self) -> None:
         result = self.parse("She eats a cake with a fork.")
         self.assertTrue(result.accepted)
+        self.assertIsNotNone(result.tree)
+        assert result.tree is not None
         self.assertEqual(
             result.tree.yield_tokens(),
             ("she", "eats", "a", "cake", "with", "a", "fork"),
@@ -90,7 +93,7 @@ class ArithmeticConversionTests(unittest.TestCase):
         cls.conversion = to_cnf(grammar)
         cls.parser = CYKParser(cls.conversion.grammar)
 
-    def parse(self, expression: str):
+    def parse(self, expression: str) -> CYKResult:
         return self.parser.parse(tokenize(expression, self.conversion.grammar.terminals))
 
     def test_conversion_produces_cnf(self) -> None:

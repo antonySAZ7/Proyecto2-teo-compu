@@ -48,7 +48,7 @@ class CYKResult:
 class CYKParser:
     """Parser reutilizable para una gramatica que ya esta en CNF."""
 
-    def __init__(self, grammar: Grammar):
+    def __init__(self, grammar: Grammar) -> None:
         if not is_cnf(grammar):
             raise ValueError("CYK requiere una gramatica en Forma Normal de Chomsky.")
         self.grammar = grammar
@@ -69,6 +69,7 @@ class CYKParser:
 
     def parse(self, tokens: list[str] | tuple[str, ...]) -> CYKResult:
         words = tuple(tokens)
+        # Medimos solo la construcción y el llenado de la tabla.
         started = perf_counter_ns()
 
         if not words:
@@ -83,10 +84,12 @@ class CYKParser:
             [dict() for _ in range(size)] for _ in range(size)
         ]
 
+        # Llenamos la diagonal con las reglas de cada palabra.
         for index, token in enumerate(words):
             for lhs in self._terminal_index.get(token, ()):
                 cells[index][index][lhs] = ParseNode(lhs, token=token)
 
+        # Combinamos fragmentos ya resueltos, de menor a mayor longitud.
         for span in range(2, size + 1):
             for start in range(0, size - span + 1):
                 end = start + span - 1
@@ -94,20 +97,21 @@ class CYKParser:
                 for split in range(start, end):
                     left = cells[start][split]
                     right = cells[split + 1][end]
+                    right_symbols = sorted(right)
                     for left_symbol in sorted(left):
-                        for right_symbol in sorted(right):
+                        for right_symbol in right_symbols:
                             for lhs in self._binary_index.get(
                                 (left_symbol, right_symbol), ()
                             ):
-                                destination.setdefault(
-                                    lhs,
-                                    ParseNode(
+                                # Guardamos los hijos para reconstruir el árbol.
+                                if lhs not in destination:
+                                    destination[lhs] = ParseNode(
                                         lhs,
                                         (left[left_symbol], right[right_symbol]),
-                                    ),
-                                )
+                                    )
 
         elapsed = perf_counter_ns() - started
+        # El inicio debe generar la frase completa.
         tree = cells[0][size - 1].get(self.grammar.start)
         public_table = tuple(
             tuple(frozenset(cells[row][column]) for column in range(size))

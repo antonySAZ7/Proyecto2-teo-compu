@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Mapping
+from types import MappingProxyType
+from typing import AbstractSet, Iterable, Mapping
 
 
 EPSILON_MARKERS = {"", "e", "epsilon", "eps", "ε", "λ"}
@@ -16,15 +17,10 @@ class GrammarError(ValueError):
 
 @dataclass(frozen=True)
 class Grammar:
-    """Gramatica CFG inmutable.
-
-    Cada produccion se representa como una tupla. La tupla vacia representa
-    epsilon. Un simbolo es no terminal si aparece al lado izquierdo de alguna
-    produccion; todos los demas simbolos son terminales.
-    """
+    """CFG inmutable; cada produccion es una tupla y () representa epsilon."""
 
     start: str
-    productions: Mapping[str, frozenset[tuple[str, ...]]]
+    productions: Mapping[str, AbstractSet[tuple[str, ...]]]
 
     def __post_init__(self) -> None:
         frozen = {
@@ -37,9 +33,14 @@ class Grammar:
             raise GrammarError(
                 f"El simbolo inicial {self.start!r} no tiene producciones."
             )
-        if any(not lhs or any(not symbol for symbol in rhs) for lhs, rules in frozen.items() for rhs in rules):
+        if any(not lhs for lhs in frozen) or any(
+            not symbol
+            for rules in frozen.values()
+            for rhs in rules
+            for symbol in rhs
+        ):
             raise GrammarError("Los simbolos de la gramatica no pueden estar vacios.")
-        object.__setattr__(self, "productions", frozen)
+        object.__setattr__(self, "productions", MappingProxyType(frozen))
 
     @property
     def nonterminals(self) -> frozenset[str]:
@@ -74,13 +75,21 @@ class Grammar:
                 self.productions[lhs], key=lambda item: (len(item), item)
             )
             if not alternatives:
+                lines.append(f"{lhs} -> ∅")
                 continue
-            rendered = [" ".join(rhs) if rhs else "ε" for rhs in alternatives]
+            rendered = [
+                " ".join(
+                    f"'{symbol}'" if _is_epsilon(symbol) or symbol == "∅" else symbol
+                    for symbol in rhs
+                ) if rhs else "ε"
+                for rhs in alternatives
+            ]
             lines.append(f"{lhs} -> {' | '.join(rendered)}")
         return "\n".join(lines)
 
     @classmethod
     def from_text(cls, text: str, start: str | None = None) -> "Grammar":
+        # Identificamos los no terminales por sus lados izquierdos.
         parsed_lines: list[tuple[int, str, str]] = []
         lhs_order: list[str] = []
 
@@ -114,6 +123,8 @@ class Grammar:
         for number, lhs, rhs_text in parsed_lines:
             for raw_alternative in rhs_text.split("|"):
                 raw_alternative = raw_alternative.strip()
+                if raw_alternative == "∅":
+                    continue
                 if _is_epsilon(raw_alternative):
                     productions[lhs].add(())
                     continue
@@ -133,7 +144,7 @@ class Grammar:
         source = Path(path)
         try:
             text = source.read_text(encoding="utf-8-sig")
-        except OSError as exc:
+        except (OSError, UnicodeError) as exc:
             raise GrammarError(f"No se pudo leer la gramatica {source}: {exc}") from exc
         return cls.from_text(text, start=start)
 

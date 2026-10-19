@@ -19,6 +19,7 @@ class CNFConversion:
 
 
 def nullable_symbols(grammar: Grammar) -> frozenset[str]:
+    # Buscamos los símbolos que pueden generar epsilon.
     nullable = {
         lhs for lhs, alternatives in grammar.productions.items() if () in alternatives
     }
@@ -50,6 +51,7 @@ def eliminate_epsilon(grammar: Grammar) -> Grammar:
             nullable_positions = [
                 index for index, symbol in enumerate(rhs) if symbol in nullable
             ]
+            # Generamos las combinaciones al omitir símbolos anulables.
             for amount in range(len(nullable_positions) + 1):
                 for omitted in combinations(nullable_positions, amount):
                     omitted_set = set(omitted)
@@ -71,6 +73,7 @@ def eliminate_unit(grammar: Grammar) -> Grammar:
     result: dict[str, set[tuple[str, ...]]] = {lhs: set() for lhs in nts}
 
     for origin in nts:
+        # Seguimos las cadenas de reglas A -> B.
         closure = {origin}
         pending = [origin]
         while pending:
@@ -90,6 +93,7 @@ def eliminate_unit(grammar: Grammar) -> Grammar:
 def remove_useless(grammar: Grammar) -> Grammar:
     """Quita simbolos no generadores y luego simbolos inalcanzables."""
 
+    # Conservamos solo símbolos generadores y alcanzables.
     nts = grammar.nonterminals
     generating: set[str] = set()
     changed = True
@@ -137,16 +141,12 @@ def remove_useless(grammar: Grammar) -> Grammar:
 def simplify(grammar: Grammar) -> Grammar:
     """Aplica las tres etapas clasicas de simplificacion de una CFG."""
 
+    # Este orden importa: quitar ε puede crear reglas unitarias nuevas.
     return remove_useless(eliminate_unit(eliminate_epsilon(grammar)))
 
 
 def to_cnf(grammar: Grammar) -> CNFConversion:
-    """Convierte una CFG a Forma Normal de Chomsky.
-
-    El lenguaje se preserva, incluyendo epsilon solamente para el simbolo
-    inicial. Los simbolos auxiliares creados se reportan para poder ocultarlos
-    al imprimir el arbol sintactico.
-    """
+    """Convierte a CNF y registra auxiliares para ocultarlos en el arbol."""
 
     original_count = grammar.production_count
     helper_symbols: set[str] = set()
@@ -157,11 +157,11 @@ def to_cnf(grammar: Grammar) -> CNFConversion:
         for alternatives in grammar.productions.values()
         for rhs in alternatives
     )
-    # Solo hace falta un inicio nuevo cuando el inicio original es anulable y
-    # tambien aparece a la derecha. En los demas casos conservar su nombre
-    # produce arboles mas claros sin violar CNF.
+    # Separamos el inicio si deriva epsilon y aparece a la derecha.
     if grammar.start in nullable_symbols(grammar) and appears_on_rhs:
-        new_start = _fresh_symbol(f"{grammar.start}_START", grammar.nonterminals)
+        new_start = _fresh_symbol(
+            f"{grammar.start}_START", grammar.nonterminals | grammar.terminals
+        )
         productions = {
             lhs: set(alternatives)
             for lhs, alternatives in grammar.productions.items()
@@ -177,8 +177,9 @@ def to_cnf(grammar: Grammar) -> CNFConversion:
         lhs: set() for lhs in working.nonterminals
     }
 
-    for lhs, alternatives in working.productions.items():
-        for rhs in alternatives:
+    # Reemplazamos terminales de reglas mixtas por auxiliares.
+    for lhs in sorted(working.productions):
+        for rhs in sorted(working.productions[lhs]):
             if len(rhs) < 2:
                 replaced[lhs].add(rhs)
                 continue
@@ -200,12 +201,13 @@ def to_cnf(grammar: Grammar) -> CNFConversion:
     binarized: dict[str, set[tuple[str, ...]]] = {
         lhs: set() for lhs in replaced
     }
-    for lhs, alternatives in replaced.items():
-        for rhs in alternatives:
+    for lhs in sorted(replaced):
+        for rhs in sorted(replaced[lhs]):
             if len(rhs) <= 2:
                 binarized[lhs].add(rhs)
                 continue
             current_lhs = lhs
+            # Convertimos A -> B C D en A -> B _B y _B -> C D.
             for index in range(len(rhs) - 2):
                 helper = _fresh_symbol("_B", occupied)
                 occupied.add(helper)
