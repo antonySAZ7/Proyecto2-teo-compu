@@ -107,6 +107,11 @@ hasta cinco tokens, incluida la vacía.
 
 En Windows puede usarse `python` en lugar de `python3`, según la instalación.
 
+## Documentación
+
+El [informe del proyecto](documentacion.pdf) incluye el diseño de la aplicación,
+la explicación de los algoritmos, las pruebas realizadas y la discusión.
+
 ## Estructura
 
 ```text
@@ -119,4 +124,5 @@ grammars/arithmetic.cfg         Ejemplo original sin CNF
 grammars/arithmetic_cnf_reference.cfg  CNF entregada como referencia
 tests/test_project.py           Pruebas automatizadas
 tests/test_regressions.py       Casos límite y comparación independiente de lenguajes
+documentacion.pdf              Informe del proyecto
 ```
