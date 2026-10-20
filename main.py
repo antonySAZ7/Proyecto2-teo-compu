@@ -24,8 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_GRAMMAR = PROJECT_ROOT / "grammars" / "english.cfg"
 TOKEN_PATTERN = re.compile(r"[^\W_]+(?:'[^\W_]+)?|[^\s]", re.UNICODE)
 MENU = """
-1. Analizar una frase
-2. Ver la simplificacion y conversion a CNF
+1. Ingresar una frase
 0. Salir
 """
 
@@ -209,8 +208,8 @@ def run_menu(grammar_path: Path, start: str | None = None) -> int:
             if choice == "0":
                 print("Hasta luego.")
                 return 0
-            if choice not in {"1", "2"}:
-                print("Opcion no valida. Elija 1, 2 o 0.")
+            if choice != "1":
+                print("Opcion no valida. Elija 1 o 0.")
                 continue
             # Leemos de nuevo por si editamos las reglas durante la revision.
             try:
@@ -220,16 +219,13 @@ def run_menu(grammar_path: Path, start: str | None = None) -> int:
                 print(f"Error de gramatica: {exc}")
                 continue
             source, conversion = updated, converted
-            if choice == "1":
-                sentence = input("Ingrese la frase o expresion: ")
-                analyze_sentence(
-                    sentence,
-                    conversion,
-                    show_steps=True,
-                    source=source,
-                )
-            else:
-                show_simplification(source, conversion)
+            sentence = input("Ingrese la frase o expresion: ")
+            analyze_sentence(
+                sentence,
+                conversion,
+                show_steps=True,
+                source=source,
+            )
     except (EOFError, KeyboardInterrupt):
         print("\nMenu cerrado.")
         return 0

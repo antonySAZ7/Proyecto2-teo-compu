@@ -46,7 +46,6 @@ Se abre un menu que permite repetir las consultas sin reiniciar el programa:
 | Opcion | Accion |
 |---|---|
 | 1 | Mostrar la preparacion de la gramatica, los tokens, las celdas CYK y el resultado con tiempo y arbol |
-| 2 | Mostrar las etapas de simplificacion y la CNF final |
 | 0 | Salir |
 
 La opcion 1 acepta una entrada vacia para comprobar si la gramatica genera
@@ -101,8 +100,8 @@ Para abrir el menu con una gramatica determinada:
 python3 main.py --menu --grammar grammars/arithmetic.cfg
 ```
 
-En ese menu, la opcion 2 permite demostrar la simplificacion y conversion de
-reglas aritmeticas que todavia no estan en CNF.
+En ese menu, ingrese una expresion con la opcion 1. La simplificacion y la
+conversion a CNF se muestran automaticamente como parte del analisis.
 
 ## Formato de las gramáticas
 

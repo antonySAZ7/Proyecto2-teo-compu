@@ -24,11 +24,10 @@ class ConsoleMenuTests(unittest.TestCase):
         self.assertEqual(status, 0)
         options = [line for line in output.splitlines() if line[:2] in {"0.", "1.", "2."}]
         self.assertEqual(options, [
-            "1. Analizar una frase",
-            "2. Ver la simplificacion y conversion a CNF",
+            "1. Ingresar una frase",
             "0. Salir",
         ])
-        self.assertNotIn("3.", output)
+        self.assertNotIn("2.", output)
 
     def test_exit_uses_option_zero(self) -> None:
         status, output = self.menu(["salir", "0"])
@@ -44,7 +43,7 @@ class ConsoleMenuTests(unittest.TestCase):
         self.assertEqual(output.count("Tiempo CYK:"), 2)
 
     def test_analysis_explains_all_steps_and_returns_to_menu(self) -> None:
-        status, output = self.menu(["1", "she eats a cake", "2", "0"])
+        status, output = self.menu(["1", "she eats a cake", "1", "he cooks", "0"])
         self.assertEqual(status, 0)
         for number in range(1, 6):
             self.assertIn(f"PASO {number}.", output)
@@ -67,9 +66,9 @@ class ConsoleMenuTests(unittest.TestCase):
         for expected in ("PASO 1.", "Corte despues de la palabra", "Resultado: SÍ", "Tabla CYK:"):
             self.assertIn(expected, output.getvalue())
 
-    def test_simplification_option_shows_all_stages(self) -> None:
+    def test_arithmetic_analysis_automatically_shows_simplification(self) -> None:
         source = PROJECT_ROOT / "grammars" / "arithmetic.cfg"
-        status, output = self.menu(["2", "0"], ["--menu", "--grammar", str(source)])
+        status, output = self.menu(["1", "id + id * id", "0"], ["--menu", "--grammar", str(source)])
         self.assertEqual(status, 0)
         for expected in (
             "1. Gramatica original:",
@@ -119,7 +118,7 @@ class ConsoleMenuTests(unittest.TestCase):
         self.assertNotIn("Resultado:", output.getvalue())
 
     def test_invalid_options_return_to_menu(self) -> None:
-        status, output = self.menu(["99", "9", "0"])
+        status, output = self.menu(["2", "9", "0"])
         self.assertEqual(status, 0)
         self.assertEqual(output.count("Opcion no valida."), 2)
 
