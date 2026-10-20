@@ -38,7 +38,36 @@ No requiere librerías externas. Solo se necesita Python 3.10 o posterior.
 Desde la carpeta del proyecto:
 
 ```bash
+python3 main.py
+```
+
+Se abre un menu que permite repetir las consultas sin reiniciar el programa:
+
+| Opcion | Accion |
+|---|---|
+| 1 | Mostrar la preparacion de la gramatica, los tokens, las celdas CYK y el resultado con tiempo y arbol |
+| 2 | Mostrar las etapas de simplificacion y la CNF final |
+| 0 | Salir |
+
+La opcion 1 acepta una entrada vacia para comprobar si la gramatica genera
+epsilon. Antes de cada consulta se vuelve a leer el archivo, por lo que se
+pueden editar sus reglas sin reiniciar el programa. Si una regla es invalida,
+se muestra el error y se vuelve al menu.
+
+Despues de cada consulta se vuelve al menu. Para terminar, seleccione
+**0. Salir**. La explicacion de los pasos se imprime fuera de la medicion
+del algoritmo, por lo que el tiempo CYK no incluye esa salida en pantalla.
+
+Tambien puede ejecutar una consulta directamente:
+
+```bash
 python3 main.py "She eats a cake with a fork."
+```
+
+Para mostrar los pasos tambien en una consulta directa:
+
+```bash
+python3 main.py "she eats a cake" --show-steps --show-table
 ```
 
 La salida incluye:
@@ -66,12 +95,14 @@ Para usar otra gramática, por ejemplo la aritmética proporcionada:
 python3 main.py "id + id * id" --grammar grammars/arithmetic.cfg
 ```
 
-Si no se escribe la frase como argumento, el programa la solicita de forma
-interactiva:
+Para abrir el menu con una gramatica determinada:
 
 ```bash
-python3 main.py
+python3 main.py --menu --grammar grammars/arithmetic.cfg
 ```
+
+En ese menu, la opcion 2 permite demostrar la simplificacion y conversion de
+reglas aritmeticas que todavia no estan en CNF.
 
 ## Formato de las gramáticas
 
@@ -99,11 +130,13 @@ por ejemplo, `S -> 'e'`.
 python3 -m unittest discover -s tests -v
 ```
 
-Las 30 pruebas verifican la simplificación, la conversión a CNF, las frases en
-inglés, el árbol reconstruido, casos límite y los errores de archivos. También
-comparan el reconocimiento aritmético con una derivación independiente de la
-CFG original y con la CNF de referencia para las 3,906 cadenas posibles de
-hasta cinco tokens, incluida la vacía.
+Las 42 pruebas incluyen las 30 comprobaciones del algoritmo y 12 del menu.
+Verifican la simplificación, la conversión a CNF, las frases en inglés, el
+árbol reconstruido, casos límite, errores de archivos, lectura de reglas
+editadas, salida numerica y consultas consecutivas. También comparan el
+reconocimiento aritmético con una derivación independiente de la CFG original
+y con la CNF de referencia para las 3,906 cadenas posibles de hasta cinco
+tokens, incluida la vacía.
 
 En Windows puede usarse `python` en lugar de `python3`, según la instalación.
 
@@ -111,6 +144,8 @@ En Windows puede usarse `python` en lugar de `python3`, según la instalación.
 
 El [informe del proyecto](documentacion.pdf) incluye el diseño de la aplicación,
 la explicación de los algoritmos, las pruebas realizadas y la discusión.
+El informe registra las 30 pruebas de la version original; esta version agrega
+12 pruebas de la interfaz y el menu explicado en este README.
 
 ## Estructura
 
@@ -124,5 +159,6 @@ grammars/arithmetic.cfg         Ejemplo original sin CNF
 grammars/arithmetic_cnf_reference.cfg  CNF entregada como referencia
 tests/test_project.py           Pruebas automatizadas
 tests/test_regressions.py       Casos límite y comparación independiente de lenguajes
+tests/test_console.py           Pruebas del menu de consola
 documentacion.pdf              Informe del proyecto
 ```
